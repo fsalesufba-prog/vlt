@@ -1,0 +1,655 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VLT · Diesel 2026</title>
+    <!-- Chart.js (leve e direto) -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        /* —————————— ESTILO FUTURISTA NEBULA —————————— */
+        body {
+            background: radial-gradient(circle at 30% 10%, #0e1b2f, #02060c);
+            font-family: 'Plus Jakarta Sans', 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            min-height: 100vh;
+            padding: 20px;
+            color: #e4f0ff;
+        }
+
+        .dashboard {
+            max-width: 1600px;
+            margin: 0 auto;
+            position: relative;
+        }
+
+        /* cabeçalho com brilho */
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 28px;
+            padding: 0 8px;
+        }
+        .header h1 {
+            font-size: 2.4rem;
+            font-weight: 700;
+            background: linear-gradient(130deg, #b3e0ff, #6bc2ff, #2890e0);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            text-shadow: 0 0 15px #0077ff99;
+            letter-spacing: -1px;
+        }
+        .badge {
+            background: rgba(10, 30, 55, 0.7);
+            backdrop-filter: blur(12px);
+            border: 1px solid #00bbff40;
+            padding: 8px 28px;
+            border-radius: 40px;
+            font-weight: 400;
+            color: #a0dcff;
+            box-shadow: 0 0 20px #0080ff60;
+            font-size: 1.1rem;
+        }
+
+        /* grid principal: painel esquerdo + área direita */
+        .simulador-grid {
+            display: grid;
+            grid-template-columns: 300px 1fr;
+            gap: 24px;
+        }
+
+        /* ——— PAINEL ESQUERDO (vidro fumê) ——— */
+        .control-panel {
+            background: rgba(8, 22, 40, 0.6);
+            backdrop-filter: blur(18px) saturate(200%);
+            -webkit-backdrop-filter: blur(18px);
+            border: 1px solid #2580c080;
+            border-radius: 40px;
+            padding: 24px 20px;
+            box-shadow: 0 30px 50px -15px #000000cc, inset 0 1px 2px #ffffff20;
+        }
+
+        .control-panel h3 {
+            font-size: 1rem;
+            text-transform: uppercase;
+            letter-spacing: 3px;
+            font-weight: 400;
+            margin: 28px 0 12px 0;
+            color: #50c8ff;
+            text-shadow: 0 0 5px #0077ff;
+            border-bottom: 1px dashed #1f6fb0;
+            padding-bottom: 8px;
+        }
+        .control-panel h3:first-of-type {
+            margin-top: 0;
+        }
+
+        .slider-group {
+            margin-bottom: 28px;
+        }
+        .slider-group label {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.9rem;
+            font-weight: 300;
+            color: #b0d4ff;
+            margin-bottom: 6px;
+        }
+        input[type=range] {
+            width: 100%;
+            height: 8px;
+            background: linear-gradient(90deg, #1b5585, #3fa2f0);
+            border-radius: 20px;
+            -webkit-appearance: none;
+        }
+        input[type=range]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 22px;
+            height: 22px;
+            background: white;
+            border-radius: 50%;
+            box-shadow: 0 0 20px #00b8ff, 0 0 40px #006eff;
+            border: 2px solid #7fdaff;
+            cursor: pointer;
+        }
+        .num-input {
+            width: 100%;
+            background: rgba(0, 30, 60, 0.5);
+            border: 1px solid #2580c0;
+            border-radius: 40px;
+            padding: 12px 18px;
+            font-size: 1rem;
+            color: #e0f0ff;
+            outline: none;
+            backdrop-filter: blur(5px);
+            margin-top: 6px;
+            box-shadow: inset 0 0 15px #001c33;
+        }
+        .num-input:focus {
+            border-color: #00e0ff;
+            box-shadow: 0 0 18px #0099ff, inset 0 0 10px #001e33;
+        }
+
+        .cenario-buttons {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            margin: 20px 0 10px;
+        }
+        .btn-cenario {
+            background: rgba(0, 40, 70, 0.6);
+            border: 1px solid #1f6fb0;
+            color: #c2e2ff;
+            padding: 8px 14px;
+            border-radius: 60px;
+            font-weight: 600;
+            font-size: 0.8rem;
+            letter-spacing: 0.6px;
+            backdrop-filter: blur(10px);
+            cursor: pointer;
+            transition: 0.2s;
+            flex: 1 0 auto;
+            box-shadow: 0 4px 10px #00000050;
+        }
+        .btn-cenario.ativo {
+            background: #0066d9;
+            border-color: #7fd6ff;
+            color: white;
+            text-shadow: 0 0 8px white;
+            box-shadow: 0 0 25px #0077ff;
+        }
+        .btn-cenario:hover {
+            background: #10508a;
+            border-color: #7fc4ff;
+        }
+
+        .kpi-cards {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+            margin: 30px 0 10px;
+        }
+        .kpi {
+            background: rgba(0, 20, 45, 0.6);
+            backdrop-filter: blur(10px);
+            border: 1px solid #0088cc40;
+            border-radius: 30px;
+            padding: 16px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 10px 20px -10px #00000080, inset 0 0 30px #0028551a;
+        }
+        .kpi span:first-child {
+            font-weight: 300;
+            color: #aad0ff;
+        }
+        .kpi .valor {
+            font-weight: 700;
+            font-size: 1.5rem;
+            background: linear-gradient(130deg, #fff, #b3e2ff);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .alerta {
+            border-left: 6px solid #ff5e5e;
+            box-shadow: 0 0 25px #ff3030;
+        }
+
+        /* ——— PAINEL DIREITO (vidro mais espesso) ——— */
+        .right-panel {
+            background: rgba(5, 16, 30, 0.55);
+            backdrop-filter: blur(22px) saturate(200%);
+            border: 1px solid #2580c080;
+            border-radius: 40px;
+            padding: 24px;
+            box-shadow: 0 30px 50px -15px black, inset 0 1px 1px #ffffff30;
+        }
+
+        .tabs {
+            display: flex;
+            gap: 8px;
+            border-bottom: 1px solid #1e4f7a;
+            padding-left: 12px;
+        }
+        .tab {
+            background: transparent;
+            border: none;
+            color: #8fb9da;
+            font-weight: 600;
+            font-size: 0.9rem;
+            padding: 12px 22px;
+            cursor: pointer;
+            border-radius: 30px 30px 0 0;
+            letter-spacing: 0.5px;
+            transition: 0.2s;
+        }
+        .tab.ativo {
+            background: rgba(0, 140, 255, 0.2);
+            color: white;
+            text-shadow: 0 0 8px #0af;
+            border-bottom: 2px solid #00d0ff;
+        }
+
+        .chart-container {
+            position: relative;
+            height: 340px;
+            width: 100%;
+            margin: 22px 0 20px;
+        }
+
+        /* matriz de sensibilidade cyber */
+        .sensibilidade-grid {
+            overflow-x: auto;
+            border-radius: 24px;
+            background: #05121e;
+            padding: 12px;
+        }
+        table.sensibilidade {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.8rem;
+            background: #0b1b2b80;
+            border-radius: 20px;
+        }
+        .sensibilidade th {
+            background: #002842;
+            color: #a0ebff;
+            font-weight: 500;
+            padding: 14px 5px;
+            border-bottom: 2px solid #0af;
+        }
+        .sensibilidade td {
+            border: 1px solid #103d5a;
+            padding: 12px 6px;
+            text-align: center;
+            font-weight: 400;
+            color: #d1edff;
+        }
+        .tooltip-cell {
+            position: relative;
+            cursor: help;
+        }
+        .tooltip-cell:hover::after {
+            content: attr(data-tooltip);
+            position: absolute;
+            background: #0a1b2f;
+            border: 1px solid #0af;
+            color: white;
+            padding: 8px 12px;
+            border-radius: 18px;
+            font-size: 0.75rem;
+            bottom: 130%;
+            left: 50%;
+            transform: translateX(-50%);
+            white-space: nowrap;
+            box-shadow: 0 0 25px #00b3ff;
+            z-index: 100;
+            backdrop-filter: blur(5px);
+        }
+        .verde { background: #113d2ecc; color: #b3ffcf; }
+        .verde-claro { background: #1d5440cc; }
+        .amarelo { background: #78661ecc; color: #fffac2; }
+        .laranja { background: #8f4820cc; color: #ffdec2; }
+        .vermelho { background: #7f2f2fcc; color: #ffc2c2; }
+
+        footer {
+            margin-top: 30px;
+            text-align: right;
+            font-weight: 300;
+            color: #2b6799;
+            border-top: 1px dashed #2b6080;
+            padding-top: 15px;
+            font-size: 1rem;
+            letter-spacing: 2px;
+        }
+    </style>
+</head>
+<body>
+<div class="dashboard">
+    <div class="header">
+        <h1>⟢ VLT · Diesel 2026</h1>
+    </div>
+
+    <div class="simulador-grid">
+        <!-- PAINEL DE CONTROLE ESQUERDO -->
+        <div class="control-panel">
+            <h3>⛽ preço diesel (R$/L)</h3>
+            <div class="slider-group">
+                <label><span>atual</span> <span id="precoValor">6.40</span></label>
+                <input type="range" id="precoSlider" min="5.0" max="12.0" value="6.40" step="0.01">
+                <input type="number" id="precoInput" class="num-input" value="6.40" step="0.01" min="5.0" max="8.0">
+            </div>
+
+            <h3>📦 consumo (desvio %)</h3>
+            <div class="slider-group">
+                <label><span>base 80.000 L/mês</span> <span id="consumoValor">0</span>%</label>
+                <input type="range" id="consumoSlider" min="-10" max="10" value="0" step="1">
+            </div>
+
+            <h3>🔒 hedge (preço fixo)</h3>
+            <div class="slider-group">
+                <label><span>% coberto por contrato</span> <span id="hedgeValor">50</span>%</label>
+                <input type="range" id="hedgeSlider" min="0" max="100" value="50" step="5">
+                <div style="font-size:0.7rem; color:#90c0ff; margin-top:6px;">preço fixado: R$ 6,59 (média orçada)</div>
+            </div>
+
+            <div class="cenario-buttons">
+                <button class="btn-cenario" id="cenOtimista">🚀 otimista</button>
+                <button class="btn-cenario ativo" id="cenRealista">🎯 realista</button>
+                <button class="btn-cenario" id="cenPessimista">⚠️ pessimista</button>
+                <button class="btn-cenario btn-personal" id="cenPersonal">✨ personal</button>
+            </div>
+
+            <!-- KPIs -->
+            <div class="kpi-cards">
+                <div class="kpi"><span>saldo acumulado (R$)</span><span class="valor" id="kpiSaldo">211.756,90</span></div>
+                <div class="kpi"><span>projeção anual (R$)</span><span class="valor" id="kpiProj">5.248.900</span></div>
+                <div class="kpi" id="kpiVariacao"><span>variação vs orçado</span><span class="valor" id="varPercent">0,0%</span></div>
+                <div class="kpi alerta" id="alertaDiv" style="display: none;"><span>⚠️ alerta</span><span class="valor" id="alertaMsg">+10% orçado</span></div>
+            </div>
+        </div>
+
+        <!-- PAINEL DIREITO COM GRÁFICOS ÚTEIS -->
+        <div class="right-panel">
+            <div class="tabs">
+                <button class="tab ativo" id="tabSaldo">📈 saldo acumulado</button>
+                <button class="tab" id="tabComparativo">📊 mensal: real vs orçado</button>
+                <button class="tab" id="tabSensibilidade">🔎 matriz de sensibilidade</button>
+            </div>
+            <!-- container de gráficos / matriz -->
+            <div id="chartArea" class="chart-container">
+                <canvas id="mainChart"></canvas>
+            </div>
+            <div id="sensibilidadePanel" style="display: none;" class="sensibilidade-grid">
+                <table class="sensibilidade" id="sensibilidadeTable"></table>
+            </div>
+            <div style="font-size:0.7rem; color:#429bcb; text-align:right; margin-top: 8px;">*passe o mouse para valores exatos</div>
+        </div>
+    </div>
+    <footer>2026 vlt</footer>
+</div>
+
+<script>
+    (function() {
+        // ---------- DADOS REAIS IMOBILIZADOS (janeiro a março, com segunda linha de março) ----------
+        const mesesReal = [
+            { mes: 'jan/26', real: 500125.10, consumo: 91200, orcado: 6.59 },
+            { mes: 'fev/26', real: 373816.00, consumo: 70000, orcado: 6.59 },
+            { mes: 'mar/26', real: 240210.00, consumo: 40000, orcado: 6.59 },
+            { mes: 'mar/26 (2)', real: 0, consumo: 40000, orcado: 6.59 }  // segunda linha março (conforme tabela original)
+        ];
+
+        // Projeções orçadas (abril a dezembro)
+        const mesesFuturos = [
+            { mes: 'abr/26', consumoBase: 80000, orcado: 6.66 },
+            { mes: 'mai/26', consumoBase: 80000, orcado: 6.66 },
+            { mes: 'jun/26', consumoBase: 80000, orcado: 6.66 },
+            { mes: 'jul/26', consumoBase: 80000, orcado: 6.73 },
+            { mes: 'ago/26', consumoBase: 80000, orcado: 6.73 },
+            { mes: 'set/26', consumoBase: 80000, orcado: 6.73 },
+            { mes: 'out/26', consumoBase: 80000, orcado: 6.80 },
+            { mes: 'nov/26', consumoBase: 80000, orcado: 6.80 },
+            { mes: 'dez/26', consumoBase: 80000, orcado: 6.80 }
+        ];
+
+        // Consolidado completo (13 linhas)
+        const todosMeses = [...mesesReal, ...mesesFuturos];
+
+        // Orçado total (soma de orcado * consumo base, inclusive meses passados? orçado passado é 6.59 * consumo real)
+        function calcularOrcadoTotal() {
+            let soma = 0;
+            mesesReal.forEach(m => soma += m.orcado * m.consumo);
+            mesesFuturos.forEach(m => soma += m.orcado * m.consumoBase);
+            return soma;  // ~ 5.248.900
+        }
+        const ORCADO_TOTAL = calcularOrcadoTotal();
+
+        // elementos DOM
+        const precoSlider = document.getElementById('precoSlider');
+        const precoInput = document.getElementById('precoInput');
+        const precoValor = document.getElementById('precoValor');
+        const consumoSlider = document.getElementById('consumoSlider');
+        const consumoValor = document.getElementById('consumoValor');
+        const hedgeSlider = document.getElementById('hedgeSlider');
+        const hedgeValor = document.getElementById('hedgeValor');
+        const kpiSaldo = document.getElementById('kpiSaldo');
+        const kpiProj = document.getElementById('kpiProj');
+        const varPercent = document.getElementById('varPercent');
+        const alertaDiv = document.getElementById('alertaDiv');
+        const alertaMsg = document.getElementById('alertaMsg');
+
+        // botões cenário
+        const btnOti = document.getElementById('cenOtimista');
+        const btnReal = document.getElementById('cenRealista');
+        const btnPes = document.getElementById('cenPessimista');
+        const btnPers = document.getElementById('cenPersonal');
+
+        // abas
+        const tabSaldo = document.getElementById('tabSaldo');
+        const tabComparativo = document.getElementById('tabComparativo');
+        const tabSensibilidade = document.getElementById('tabSensibilidade');
+        const chartArea = document.getElementById('chartArea');
+        const sensibilidadePanel = document.getElementById('sensibilidadePanel');
+        const canvas = document.getElementById('mainChart');
+        let ctx = canvas.getContext('2d');
+        let currentChart = null;
+
+        // valores atuais
+        let precoSpot = 6.40;
+        let desvioConsumo = 0;  // percentual -10..+10
+        let hedgePct = 50;       // 0-100%
+        const PRECO_HEDGE_FIXO = 6.59;  // preço do contrato (média orçada)
+
+        // sincroniza inputs
+        function sincronizarInputs() {
+            precoValor.innerText = precoSpot.toFixed(2);
+            precoSlider.value = precoSpot;
+            precoInput.value = precoSpot.toFixed(2);
+            consumoValor.innerText = desvioConsumo;
+            consumoSlider.value = desvioConsumo;
+            hedgeValor.innerText = hedgePct;
+            hedgeSlider.value = hedgePct;
+        }
+
+        // Função que calcula mês a mês (considerando hedge)
+        function calcularSimulacao() {
+            let saldoAcumulado = 0;
+            let totalRealAno = 0;
+            let totalOrcadoAno = 0;
+            let mesesDetalhados = [];
+
+            // processa meses passados (reais)
+            mesesReal.forEach(m => {
+                let orcadoMes = m.orcado * m.consumo;
+                let realMes = m.real;  // fixo
+                totalOrcadoAno += orcadoMes;
+                totalRealAno += realMes;
+                saldoAcumulado += orcadoMes - realMes;
+                mesesDetalhados.push({ mes: m.mes, real: realMes, orcado: orcadoMes, saldoParcial: saldoAcumulado });
+            });
+
+            // processa meses futuros com variáveis
+            mesesFuturos.forEach(m => {
+                let consumoEfetivo = m.consumoBase * (1 + desvioConsumo/100);
+                // preço efetivo com hedge: parte fixa (PRECO_HEDGE_FIXO), parte spot
+                let precoEfetivo = (hedgePct/100) * PRECO_HEDGE_FIXO + (1 - hedgePct/100) * precoSpot;
+                let realMes = precoEfetivo * consumoEfetivo;
+                let orcadoMes = m.orcado * m.consumoBase;  // orçado original (sem desvio)
+                totalOrcadoAno += orcadoMes;
+                totalRealAno += realMes;
+                saldoAcumulado += orcadoMes - realMes;
+                mesesDetalhados.push({ mes: m.mes, real: realMes, orcado: orcadoMes, saldoParcial: saldoAcumulado });
+            });
+
+            // atualiza KPIs
+            kpiSaldo.innerText = saldoAcumulado.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+            kpiProj.innerText = totalRealAno.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+            let variacao = (totalRealAno - ORCADO_TOTAL) / ORCADO_TOTAL;
+            varPercent.innerText = (variacao * 100).toFixed(1) + '%';
+            if (variacao > 0.10) {
+                alertaDiv.style.display = 'flex';
+                alertaMsg.innerText = `+${(variacao*100).toFixed(1)}% orçado`;
+            } else {
+                alertaDiv.style.display = 'none';
+            }
+
+            return { mesesDetalhados, saldoAcumulado, totalRealAno };
+        }
+
+        // ---------- GRÁFICO 1: SALDO ACUMULADO (LINHA) ----------
+        function desenharSaldoAcumulado() {
+            if (currentChart) currentChart.destroy();
+            let sim = calcularSimulacao();
+            let mesesNomes = sim.mesesDetalhados.map(m => m.mes);
+            let saldos = sim.mesesDetalhados.map(m => m.saldoParcial / 1000); // em milhares
+
+            currentChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: mesesNomes,
+                    datasets: [{
+                        label: 'saldo acumulado (R$ mil)',
+                        data: saldos,
+                        borderColor: '#00c8ff',
+                        backgroundColor: 'transparent',
+                        borderWidth: 3,
+                        pointBackgroundColor: '#80dcff',
+                        pointBorderColor: '#003057',
+                        tension: 0.1,
+                        fill: false
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        tooltip: { callbacks: { label: (ctx) => `R$ ${(ctx.raw*1000).toLocaleString('pt-BR', {minimumFractionDigits:2})}` } }
+                    },
+                    scales: { y: { ticks: { callback: (v) => 'R$ ' + (v/1).toFixed(0) + ' mil' } } }
+                }
+            });
+        }
+
+        // ---------- GRÁFICO 2: COMPARATIVO MENSAL (BARRAS) ----------
+        function desenharComparativo() {
+            if (currentChart) currentChart.destroy();
+            let sim = calcularSimulacao();
+            let meses = sim.mesesDetalhados.map(m => m.mes);
+            let realData = sim.mesesDetalhados.map(m => m.real / 1000);
+            let orcadoData = sim.mesesDetalhados.map(m => m.orcado / 1000);
+
+            currentChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: meses,
+                    datasets: [
+                        { label: 'real (R$ mil)', data: realData, backgroundColor: '#4db8ff', borderRadius: 6 },
+                        { label: 'orçado (R$ mil)', data: orcadoData, backgroundColor: '#b0b0b080', borderRadius: 6 }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { tooltip: { callbacks: { label: (ctx) => `R$ ${(ctx.raw*1000).toLocaleString('pt-BR')}` } } }
+                }
+            });
+        }
+
+        // ---------- MATRIZ DE SENSIBILIDADE (5x5) ----------
+        function preencherMatrizSensibilidade() {
+            let precos = [5.5, 6.0, 6.5, 7.0, 7.5];
+            let consumos = [0.8, 0.9, 1.0, 1.1, 1.2]; // multiplicador sobre consumo base
+            // para cada par, calcula impacto no resultado anual em relação ao orçado
+            let orcadoAnual = ORCADO_TOTAL;
+            let html = '<table class="sensibilidade"><tr><th>preço / consumo</th>';
+            consumos.forEach(c => html += `<th>${Math.round(c*100)}%</th>`);
+            html += '</tr>';
+
+            for (let p of precos) {
+                html += `<tr><th>R$ ${p.toFixed(2)}</th>`;
+                for (let c of consumos) {
+                    // simulação rápida com hedge fixo (50% para essa matriz, mas podia ser dinâmico; vamos usar 50% fixo para clareza)
+                    let hedgeFix = 50;
+                    let precoEfetivo = (hedgeFix/100)*PRECO_HEDGE_FIXO + (1-hedgeFix/100)*p;
+                    let totalReal = 0;
+                    // meses passados são fixos (não mudam na matriz, mas para simplificar usamos apenas projeção futura + passado fixo)
+                    // para manter matriz pura, consideramos apenas o impacto nos meses futuros (abr-dez) + passado fixo. Mas para sensibilidade, melhor calcular ano todo com consumo variando.
+                    // Vamos fazer: ano todo com consumo base multiplicado por c, e preço spot p, hedge 50% (fixo para matriz)
+                    let totalOrcado = ORCADO_TOTAL;
+                    // Recalcula totalReal com base nos meses futuros + passado fixo (consumo passado fixo)
+                    let totalRealCalc = 0;
+                    mesesReal.forEach(m => totalRealCalc += m.real);  // passado inalterado
+                    mesesFuturos.forEach(m => {
+                        let cons = m.consumoBase * c;
+                        let pEf = (hedgeFix/100)*PRECO_HEDGE_FIXO + (1-hedgeFix/100)*p;
+                        totalRealCalc += pEf * cons;
+                    });
+                    let impacto = (totalRealCalc - totalOrcado) / 1e6;  // em R$ milhões
+                    let cor = impacto < -0.8 ? 'verde' : impacto < -0.2 ? 'verde-claro' : impacto < 0.3 ? 'amarelo' : impacto < 0.8 ? 'laranja' : 'vermelho';
+                    html += `<td class="tooltip-cell ${cor}" data-tooltip="R$ ${(impacto*1e6).toLocaleString('pt-BR', {minimumFractionDigits:2})}">${impacto.toFixed(2)} M</td>`;
+                }
+                html += '</tr>';
+            }
+            html += '</table>';
+            document.getElementById('sensibilidadeTable').innerHTML = html;
+        }
+
+        // ROTEADOR DE ABAS
+        function ativarAba(aba) {
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('ativo'));
+            aba.classList.add('ativo');
+            if (aba.id === 'tabSensibilidade') {
+                chartArea.style.display = 'none';
+                sensibilidadePanel.style.display = 'block';
+                preencherMatrizSensibilidade();
+            } else {
+                chartArea.style.display = 'block';
+                sensibilidadePanel.style.display = 'none';
+                if (aba.id === 'tabSaldo') desenharSaldoAcumulado();
+                else if (aba.id === 'tabComparativo') desenharComparativo();
+            }
+        }
+
+        // ATUALIZA TUDO (após mudança de sliders)
+        function atualizarTudo() {
+            sincronizarInputs();
+            // Recalcula e atualiza a aba ativa
+            let active = document.querySelector('.tab.ativo');
+            if (active.id === 'tabSensibilidade') {
+                preencherMatrizSensibilidade();
+            } else if (active.id === 'tabSaldo') {
+                desenharSaldoAcumulado();
+            } else if (active.id === 'tabComparativo') {
+                desenharComparativo();
+            }
+        }
+
+        // EVENTOS
+        precoSlider.oninput = (e) => { precoSpot = parseFloat(e.target.value); atualizarTudo(); };
+        precoInput.oninput = (e) => { precoSpot = parseFloat(e.target.value) || 6.4; atualizarTudo(); };
+        consumoSlider.oninput = (e) => { desvioConsumo = parseInt(e.target.value); atualizarTudo(); };
+        hedgeSlider.oninput = (e) => { hedgePct = parseInt(e.target.value); atualizarTudo(); };
+
+        btnOti.onclick = () => { precoSpot = 5.80; desvioConsumo = -10; hedgePct = 70; atualizarTudo(); };
+        btnReal.onclick = () => { precoSpot = 6.40; desvioConsumo = 0; hedgePct = 50; atualizarTudo(); };
+        btnPes.onclick = () => { precoSpot = 7.20; desvioConsumo = 10; hedgePct = 30; atualizarTudo(); };
+        btnPers.onclick = () => { /* mantém atuais */ };
+
+        tabSaldo.onclick = () => ativarAba(tabSaldo);
+        tabComparativo.onclick = () => ativarAba(tabComparativo);
+        tabSensibilidade.onclick = () => ativarAba(tabSensibilidade);
+
+        // inicialização
+        sincronizarInputs();
+        ativarAba(tabSaldo); // começa com saldo acumulado
+    })();
+</script>
+</body>
+</html>
