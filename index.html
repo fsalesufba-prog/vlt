@@ -1,0 +1,583 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VLT · Análise Técnica de Impacto Econômico-Financeiro</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.0.0/dist/chartjs-plugin-datalabels.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            background: radial-gradient(circle at 30% 10%, #0a1428, #010101);
+            font-family: 'Plus Jakarta Sans', 'Inter', system-ui, sans-serif;
+            min-height: 100vh;
+            color: #eef5ff;
+        }
+        .presentation { max-width: 1400px; margin: 0 auto; padding: 20px; }
+        .nav-buttons {
+            display: flex;
+            justify-content: center;
+            gap: 12px;
+            margin-bottom: 30px;
+            flex-wrap: wrap;
+        }
+        .nav-btn {
+            background: rgba(20, 40, 70, 0.7);
+            backdrop-filter: blur(10px);
+            border: 1px solid #2c6f9e;
+            color: #c0e2ff;
+            padding: 10px 18px;
+            border-radius: 40px;
+            font-weight: 600;
+            font-size: 0.85rem;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .nav-btn.active {
+            background: #0070e0;
+            border-color: #7fd6ff;
+            color: white;
+            box-shadow: 0 0 20px #0077ff;
+        }
+        .nav-btn:hover { background: #1a5a8a; transform: translateY(-2px); }
+        .slide {
+            display: none;
+            background: rgba(5, 18, 35, 0.65);
+            backdrop-filter: blur(20px) saturate(180%);
+            border-radius: 48px;
+            border: 1px solid rgba(0, 160, 255, 0.35);
+            padding: 40px 48px;
+            animation: fadeIn 0.4s ease;
+        }
+        .slide.active { display: block; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(15px); } to { opacity: 1; transform: translateY(0); } }
+        h1 {
+            font-size: 3rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, #fff, #7bc9ff, #3a8fd0);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 1rem;
+        }
+        h2 {
+            font-size: 2rem;
+            font-weight: 600;
+            color: #c0e4ff;
+            margin-bottom: 24px;
+            border-left: 5px solid #2f9eff;
+            padding-left: 20px;
+        }
+        h3 { font-size: 1.3rem; color: #9ac9f0; margin: 20px 0 12px 0; }
+        .capa-image {
+            width: 100%;
+            height: 400px;
+            background: linear-gradient(135deg, #1a2f44, #071a2b);
+            border-radius: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: 2px dashed #3a8fd0;
+            margin: 30px 0;
+            overflow: hidden;
+        }
+        .capa-image img { width: 100%; height: 100%; object-fit: cover; }
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+            background: rgba(10, 25, 45, 0.6);
+            border-radius: 24px;
+            overflow: hidden;
+            margin: 20px 0;
+        }
+        .data-table th, .data-table td {
+            padding: 14px 20px;
+            text-align: left;
+            border-bottom: 1px solid #2f6080;
+        }
+        .data-table th { background: #0f3550; color: #aae0ff; font-weight: 600; }
+        .data-table td { color: #e0f0ff; }
+        .chart-box {
+            background: rgba(0, 20, 40, 0.5);
+            border-radius: 28px;
+            padding: 20px;
+            margin: 20px 0;
+            position: relative;
+            height: 600px;
+        }
+        .two-columns { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+        .simulador-controls {
+            background: rgba(0, 20, 40, 0.5);
+            border-radius: 28px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+        .simulador-controls label { color: #b0d4ff; font-size: 0.9rem; }
+        .simulador-controls input[type=range] {
+            width: 100%;
+            height: 6px;
+            background: linear-gradient(90deg, #1b5585, #3fa2f0);
+            border-radius: 10px;
+            -webkit-appearance: none;
+            margin: 10px 0;
+        }
+        .simulador-controls input[type=range]::-webkit-slider-thumb {
+            width: 18px;
+            height: 18px;
+            background: white;
+            border-radius: 50%;
+            cursor: pointer;
+            box-shadow: 0 0 10px #00b8ff;
+        }
+        .num-input {
+            background: rgba(0, 30, 60, 0.5);
+            border: 1px solid #2580c0;
+            border-radius: 40px;
+            padding: 10px 16px;
+            color: white;
+            width: 100%;
+        }
+        .kpi-sim { display: flex; gap: 16px; flex-wrap: wrap; margin: 20px 0; }
+        .kpi-card {
+            background: rgba(0, 40, 70, 0.6);
+            border-radius: 24px;
+            padding: 16px;
+            flex: 1;
+            text-align: center;
+        }
+        .kpi-card strong { font-size: 1.5rem; color: #7bc9ff; }
+        footer {
+            margin-top: 30px;
+            text-align: right;
+            font-size: 0.9rem;
+            color: #3c7a9e;
+            border-top: 1px solid #2a5a7a;
+            padding-top: 16px;
+        }
+        @media (max-width: 800px) {
+            .slide { padding: 24px; }
+            h1 { font-size: 2rem; }
+            .two-columns { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+<div class="presentation">
+    <div class="nav-buttons" id="navButtons"></div>
+
+    <!-- SLIDE 1 - CAPA -->
+    <div id="slide1" class="slide active">
+        <div style="text-align: center; min-height: 70vh; display: flex; flex-direction: column; justify-content: center;">
+            <h1 style="font-size: 3.5rem;">⟡ ANÁLISE TÉCNICA<br>DE IMPACTO ECONÔMICO-FINANCEIRO</h1>
+            <div class="capa-image">
+                <img src="vlt.avif" alt="VLT" onerror="this.parentElement.innerHTML='<i class=\'fas fa-truck-moving\' style=\'font-size:5rem;color:#3a8fd0;\'></i>'">
+            </div>
+            <p style="color: #8bbae0; font-size: 1.2rem; margin-top: 20px;">Relatório Estratégico · Consumo de Diesel e Cenários 2026</p>
+            <p style="margin-top: 40px; font-size: 0.9rem;">VLT · Gestão de Frotas</p>
+        </div>
+    </div>
+
+    <!-- SLIDE 2 - CONSUMO MÉDIO -->
+    <div id="slide2" class="slide">
+        <h2>📊 CONSUMO MÉDIO DA FROTA</h2>
+        <h3>Cálculo do Consumo Médio dos últimos 03 meses</h3>
+        <table class="data-table">
+            <thead><tr><th>Parâmetro</th><th>Resultado</th></tr></thead>
+            <tbody>
+                <tr><td>Consumo Total Litros/h mensal</td><td>669,09 L</td></tr>
+                <tr><td>Consumo Total Litros Mês</td><td>86.982,06 L</td></tr>
+                <tr><td>Custo Combustível Hora Frota</td><td>R$ 3.613,10</td></tr>
+                <tr><td>Custo Combustível Mês Frota</td><td>R$ 469.703,15</td></tr>
+            </tbody>
+        </table>
+        <div style="margin-top: 30px; background: #0a1e2e; border-radius: 24px; padding: 20px;">
+            <p><i class="fas fa-chart-line"></i> <strong>Métrica crítica:</strong> Consumo médio mensal de <strong>86.982 litros</strong> representa cerca de <strong>R$ 469 mil</strong> em custo direto de diesel.</p>
+        </div>
+    </div>
+
+    <!-- SLIDE 3 - PIZZA FRENTES -->
+    <div id="slide3" class="slide">
+        <h2>🥧 CONSUMO LITROS/MÊS POR FRENTE DE SERVIÇO</h2>
+        <div class="two-columns">
+            <div class="chart-box" style="height: 600px;">
+                <canvas id="pizzaFrentes"></canvas>
+            </div>
+            <div>
+                <table class="data-table">
+                    <thead><tr><th>Frente de Serviço</th><th>Consumo (L/mês)</th></tr></thead>
+                    <tbody>
+                        <tr><td>APOIO SERVIÇOS GERAIS</td><td>5.889,15</td></tr>
+                        <tr><td>BANCO DE DUTOS</td><td>5.279,73</td></tr>
+                        <tr><td>CIVIL</td><td>16.467,86</td></tr>
+                        <tr><td>DRENAGEM</td><td>3.926,00</td></tr>
+                        <tr><td>LABORATORIO</td><td>390,00</td></tr>
+                        <tr><td>PAVIMENTAÇÃO</td><td>18.019,73</td></tr>
+                        <tr><td>SUBESTAÇÃO</td><td>288,89</td></tr>
+                        <tr><td>TERRAPLENAGEM</td><td>25.292,10</td></tr>
+                        <tr><td>USINA</td><td>6.277,52</td></tr>
+                        <tr><td>VIA PERMANENTE</td><td>5.151,09</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- SLIDE 4 - BARRAS EQUIPAMENTOS -->
+    <div id="slide4" class="slide">
+        <h2>📊 CONSUMO POR TIPO DE EQUIPAMENTO</h2>
+        <div class="chart-box" style="height: 650px;">
+            <canvas id="barEquipamentos"></canvas>
+        </div>
+    </div>
+
+    <!-- SLIDE 5 - SIMULADOR COMPLETO -->
+    <div id="slide5" class="slide">
+        <h2>⛽ SIMULADOR DE CENÁRIOS · DIESEL 2026</h2>
+        <div class="simulador-controls">
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px;">
+                <div>
+                    <label>⛽ Preço spot (R$/L)</label>
+                    <input type="range" id="simPreco" min="5.0" max="12" value="6.40" step="0.01">
+                    <input type="number" id="simPrecoNum" class="num-input" value="6.40" step="0.01">
+                </div>
+                <div>
+                    <label>📦 Desvio consumo (%)</label>
+                    <input type="range" id="simConsumo" min="-10" max="10" value="0" step="1">
+                    <span id="simConsumoVal" style="color:#7bc9ff;">0</span>%
+                </div>
+                <div>
+                    <label>🔒 Hedge (% fixo R$6,59)</label>
+                    <input type="range" id="simHedge" min="0" max="100" value="50" step="5">
+                    <span id="simHedgeVal" style="color:#7bc9ff;">50</span>%
+                </div>
+                <div>
+                    <label>Cenários:</label>
+                    <div style="display: flex; gap: 8px; margin-top: 8px;">
+                        <button id="btnOtimistaSim" class="nav-btn" style="padding: 6px 12px;">🚀 Otimista</button>
+                        <button id="btnRealistaSim" class="nav-btn" style="padding: 6px 12px;">🎯 Realista</button>
+                        <button id="btnPessimistaSim" class="nav-btn" style="padding: 6px 12px;">⚠️ Pessimista</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="kpi-sim">
+            <div class="kpi-card"><span>💰 Saldo acumulado</span><br><strong id="simSaldo">R$ 211.756,90</strong></div>
+            <div class="kpi-card"><span>📆 Projeção anual</span><br><strong id="simProj">R$ 5.248.900</strong></div>
+            <div class="kpi-card"><span>📉 Variação vs orçado</span><br><strong id="simVar">0,0%</strong></div>
+        </div>
+        <div class="chart-box" style="height: 600px;">
+            <canvas id="simChart"></canvas>
+        </div>
+        <div class="chart-box" style="height: 600px; margin-top: 20px;">
+            <h3 style="margin-top: 0; margin-bottom: 16px;">📊 Comparativo Mensal: Real vs Orçado</h3>
+            <canvas id="comparativoChart"></canvas>
+        </div>
+        <p style="font-size: 0.75rem; margin-top: 10px;">*Hedge: parcela do consumo com preço fixo de R$ 6,59 (orçado médio).</p>
+    </div>
+
+    <!-- SLIDE 6 - CONCLUSÃO -->
+    <div id="slide6" class="slide">
+        <h2>📌 CONCLUSÃO</h2>
+        <div style="background: rgba(0, 40, 70, 0.4); border-radius: 32px; padding: 32px; margin-top: 20px;">
+            <p style="font-size: 1.2rem; line-height: 1.5;">Observa-se que o preço do combustível diesel S10 apresentou variação acumulada de 37,03% entre janeiro e março de 2026, superando significativamente os índices inflacionários oficiais (IPCA: 2,8% no mesmo período). Considerando que o:</p><br>
+            <li style="font-size: 1.2rem; line-height: 1.5;">combustível é o quinto item da curva ABC de insumos com uma participação do 2,5% e que o valor real pago de 7,1 R$ por litro acima de nosso</li>
+            <li style="font-size: 1.2rem; line-height: 1.5;">valor orçado vigente é de R$ 6,59 por litro, verifica-se impacto direto no equilíbrio econômico-financeiro do contrato, materializado em um aumento de alto custo não previsto.</li>
+            <br><br><p style="font-size: 1.2rem; line-height: 1.5;">Ressalte-se que estão sendo adotadas iniciativas operacionais e tecnológicas com foco na otimização do desempenho da frota e na redução do consumo específico de combustível (L/h), dentre as quais destacam-se:</p>
+            <br><li style="font-size: 1.2rem; line-height: 1.5;">Testes com tecnologia de rede CAN (CAN Bus) via plataforma Infleet, para maior precisão no monitoramento de desempenho e consumo;</li>
+            <li style="font-size: 1.2rem; line-height: 1.5;">Treinamento de operadores e condutores, com foco em condução eficiente e boas práticas operacionais;</li>
+            <li style="font-size: 1.2rem; line-height: 1.5;">Implantação piloto de sistemas de vídeo telemetria embarcada, visando melhoria da condução, redução de ociosidade e aumento da eficiência energética.</li>
+            <br><br><p style="font-size: 1.2rem; line-height: 1.5;">Tais ações visam mitigar, na medida do possível, os impactos decorrentes do aumento do preço do diesel.</p>
+        </div>
+    </div>
+
+    <!-- SLIDE 7 - RECOMENDAÇÕES -->
+    <div id="slide7" class="slide">
+        <h2>✅ RECOMENDAÇÕES</h2>
+        <div style="background: rgba(0, 40, 70, 0.4); border-radius: 32px; padding: 32px;">
+            <p style="font-size: 1.2rem; line-height: 1.5;">Recomenda-se a adoção de avaliação prévia da continuidade das operações em períodos de chuva, considerando:</p>
+            <ul style="list-style: none; font-size: 1.1rem;">
+                <li style="margin-bottom: 20px;"><i class="fas fa-chart-line" style="color: #2f9eff; margin-right: 12px;"></i> Redução da produtividade dos equipamentos;</li>
+                <li style="margin-bottom: 20px;"><i class="fas fa-chart-line" style="color: #2f9eff; margin-right: 12px;"></i> Aumento do consumo específico de combustível (L/h);</li>
+                <li style="margin-bottom: 20px;"><i class="fas fa-chart-line" style="color: #2f9eff; margin-right: 12px;"></i> Condições de segurança operacional;</li>
+                <li style="margin-bottom: 20px;"><i class="fas fa-chart-line" style="color: #2f9eff; margin-right: 12px;"></i> Risco de retrabalho e perda de qualidade;</li>
+                <li style="margin-bottom: 20px;"><i class="fas fa-chart-line" style="color: #2f9eff; margin-right: 12px;"></i> Maior desgaste mecânico dos equipamentos.</li>
+            </ul>
+        </div>
+    </div>
+
+    <footer>2026 VLT · Análise técnica de impacto econômico-financeiro</footer>
+</div>
+
+<script>
+    // DADOS SIMULADOR
+    const mesesRealSim = [
+        { mes: 'jan/26', real: 500125.10, consumo: 91200, orcado: 6.59 },
+        { mes: 'fev/26', real: 373816.00, consumo: 70000, orcado: 6.59 },
+        { mes: 'mar/26', real: 240210.00, consumo: 40000, orcado: 6.59 }
+    ];
+    const mesesFuturosSim = [
+        { mes: 'abr/26', consumoBase: 80000, orcado: 6.66 },
+        { mes: 'mai/26', consumoBase: 80000, orcado: 6.66 },
+        { mes: 'jun/26', consumoBase: 80000, orcado: 6.66 },
+        { mes: 'jul/26', consumoBase: 80000, orcado: 6.73 },
+        { mes: 'ago/26', consumoBase: 80000, orcado: 6.73 },
+        { mes: 'set/26', consumoBase: 80000, orcado: 6.73 },
+        { mes: 'out/26', consumoBase: 80000, orcado: 6.80 },
+        { mes: 'nov/26', consumoBase: 80000, orcado: 6.80 },
+        { mes: 'dez/26', consumoBase: 80000, orcado: 6.80 }
+    ];
+    
+    function calcularOrcadoTotalSim() {
+        let soma = 0;
+        mesesRealSim.forEach(m => soma += m.orcado * m.consumo);
+        mesesFuturosSim.forEach(m => soma += m.orcado * m.consumoBase);
+        return soma;
+    }
+    const ORCADO_TOTAL_SIM = calcularOrcadoTotalSim();
+    let precoSpot = 6.40, desvioCons = 0, hedgePct = 50;
+    const PRECO_HEDGE_FIXO = 6.59;
+
+    function calcularSimulacao() {
+        let saldoAcum = 0, totalReal = 0, totalOrcado = 0;
+        let mesesDet = [];
+        mesesRealSim.forEach(m => {
+            let orc = m.orcado * m.consumo;
+            totalOrcado += orc; totalReal += m.real; saldoAcum += orc - m.real;
+            mesesDet.push({ mes: m.mes, real: m.real, orcado: orc, saldo: saldoAcum });
+        });
+        mesesFuturosSim.forEach(m => {
+            let consumoEf = m.consumoBase * (1 + desvioCons / 100);
+            let precoEf = (hedgePct / 100) * PRECO_HEDGE_FIXO + (1 - hedgePct / 100) * precoSpot;
+            let realMes = precoEf * consumoEf;
+            let orcMes = m.orcado * m.consumoBase;
+            totalReal += realMes; totalOrcado += orcMes; saldoAcum += orcMes - realMes;
+            mesesDet.push({ mes: m.mes, real: realMes, orcado: orcMes, saldo: saldoAcum });
+        });
+        let variacao = (totalReal - ORCADO_TOTAL_SIM) / ORCADO_TOTAL_SIM;
+        document.getElementById('simSaldo').innerHTML = `R$ ${saldoAcum.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`;
+        document.getElementById('simProj').innerHTML = `R$ ${totalReal.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`;
+        document.getElementById('simVar').innerHTML = `${(variacao * 100).toFixed(1)}%`;
+        return { mesesDet, saldoAcum, totalReal };
+    }
+
+    let simChart, comparativoChart;
+    
+    function desenharSimuladorGrafico() {
+        let { mesesDet } = calcularSimulacao();
+        let labels = mesesDet.map(m => m.mes);
+        let saldosMil = mesesDet.map(m => m.saldo / 1000);
+        if (simChart) simChart.destroy();
+        let ctx = document.getElementById('simChart').getContext('2d');
+        simChart = new Chart(ctx, {
+            type: 'line',
+            data: { labels, datasets: [{ label: 'Saldo acumulado (R$ mil)', data: saldosMil, borderColor: '#3bc0ff', borderWidth: 3, fill: false, tension: 0.2, pointBackgroundColor: '#80dcff' }] },
+            options: { responsive: true, maintainAspectRatio: true, plugins: { tooltip: { callbacks: { label: (ctx) => `R$ ${(ctx.raw * 1000).toLocaleString('pt-BR')}` } } } }
+        });
+        
+        // Gráfico comparativo mensal
+        let realData = mesesDet.map(m => m.real / 1000);
+        let orcadoData = mesesDet.map(m => m.orcado / 1000);
+        if (comparativoChart) comparativoChart.destroy();
+        let ctx2 = document.getElementById('comparativoChart').getContext('2d');
+        comparativoChart = new Chart(ctx2, {
+            type: 'bar',
+            data: {
+                labels: labels,
+                datasets: [
+                    { label: 'Real (R$ mil)', data: realData, backgroundColor: '#4db8ff', borderRadius: 8, barPercentage: 0.7 },
+                    { label: 'Orçado (R$ mil)', data: orcadoData, backgroundColor: '#ffaa44', borderRadius: 8, barPercentage: 0.7 }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: true,
+                plugins: {
+                    tooltip: { callbacks: { label: (ctx) => `R$ ${(ctx.raw * 1000).toLocaleString('pt-BR')}` } },
+                    datalabels: {
+                        color: '#fff',
+                        font: { weight: 'bold', size: 9 },
+                        align: 'end',
+                        offset: 4,
+                        formatter: (value) => value.toFixed(0),
+                        backgroundColor: 'rgba(0,0,0,0.5)',
+                        borderRadius: 8,
+                        padding: { top: 2, bottom: 2, left: 4, right: 4 }
+                    }
+                },
+                scales: { y: { ticks: { color: '#b0d4ff' } }, x: { ticks: { color: '#c0dcff', font: { size: 10 } } } }
+            },
+            plugins: [ChartDataLabels]
+        });
+    }
+
+    function atualizarSimulador() {
+        precoSpot = parseFloat(document.getElementById('simPreco').value);
+        document.getElementById('simPrecoNum').value = precoSpot.toFixed(2);
+        desvioCons = parseInt(document.getElementById('simConsumo').value);
+        document.getElementById('simConsumoVal').innerText = desvioCons;
+        hedgePct = parseInt(document.getElementById('simHedge').value);
+        document.getElementById('simHedgeVal').innerText = hedgePct;
+        desenharSimuladorGrafico();
+    }
+
+    // GRÁFICO PIZZA
+    let pizzaChart;
+    function initPizza() {
+        let ctx = document.getElementById('pizzaFrentes').getContext('2d');
+        pizzaChart = new Chart(ctx, {
+            type: 'pie',
+            data: {
+                labels: ['APOIO SERVIÇOS GERAIS', 'BANCO DE DUTOS', 'CIVIL', 'DRENAGEM', 'LABORATORIO', 'PAVIMENTAÇÃO', 'SUBESTAÇÃO', 'TERRAPLENAGEM', 'USINA', 'VIA PERMANENTE'],
+                datasets: [{
+                    data: [5889.15, 5279.73, 16467.86, 3926, 390, 18019.73, 288.89, 25292.10, 6277.52, 5151.09],
+                    backgroundColor: ['#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4', '#FFEAA7', '#DDA0DD', '#98D8C8', '#F7B05E', '#C7B9FF', '#FF9F7C']
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: true,
+                plugins: {
+                    legend: { position: 'right', labels: { color: '#cce4ff', font: { size: 10 } } },
+                    datalabels: {
+                        color: '#fff',
+                        font: { weight: 'bold', size: 11 },
+                        align: 'end',
+                        offset: 12,
+                        formatter: (value, context) => {
+                            const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                            const percentage = ((value / total) * 100).toFixed(1);
+                            return `${percentage}%`;
+                        },
+                        backgroundColor: 'rgba(0,0,0,0.7)',
+                        borderRadius: 20,
+                        padding: { top: 4, bottom: 4, left: 8, right: 8 }
+                    }
+                }
+            },
+            plugins: [ChartDataLabels]
+        });
+    }
+
+    // GRÁFICO BARRAS EQUIPAMENTOS
+    let barChart;
+    function initBarEquip() {
+        let ctx = document.getElementById('barEquipamentos').getContext('2d');
+        const equipLabels = [
+            "ESCAVADEIRA HIDRAULICA", "CAMINHÃO BASCULANTE", "GERADOR", "MOTONIVELADORA", "ROLO COMP. PÉ DE CARNEIRO",
+            "RETROESCAVADEIRA", "CAMINHÃO BETONEIRA", "TRATOR ESTEIRA", "TRATOR DE PNEU AGRICOLA", "CAMINHÃO MUNCK",
+            "CAMINHÃO PIPA", "GUINDASTE", "ROLO COMP. PNEUS", "BOMBA LANÇA", "COMPRESSOR DE AR", "CARREGADEIRA",
+            "CARRETA DE CARROÇERIA", "ONIBUS", "MINI ESCAVADEIRA", "ROLO COMP. TANDEN", "MINI ESCAVADEIRA COM ROMPEDOR/CONCHA",
+            "CAMINHÃO 3/4", "ALINHADORA HID. DE TRILHOS", "CARRETA PRANCHA", "CAMINHÃO BASCULANTE", "MINI CARREGADEIRA C/ VASSOURA",
+            "EXTRUSORA MANUAL", "CAMINHÃO COMBOIO", "TORRE DE ILUMINAÇÃO", "PLATAFORMA ELEVATORIA", "MINI ROLO COMPACTADOR"
+        ];
+        const equipData = [
+            14548.84, 12197.36, 8239.45, 7634.02, 6754.15, 4189.81, 3750.45, 2842.38, 2574.87, 2484.78,
+            2302.14, 1926.31, 1820.00, 1816.68, 1755.00, 1685.39, 1612.33, 1066.00, 1053.00, 845.00,
+            780.00, 656.50, 650.00, 624.00, 565.50, 542.50, 520.00, 466.61, 416.00, 377.00, 286.00
+        ];
+        barChart = new Chart(ctx, {
+            type: 'bar',
+            data: { labels: equipLabels, datasets: [{ label: 'Consumo (L/mês)', data: equipData, backgroundColor: '#4db8ff', borderRadius: 6, barPercentage: 0.85, categoryPercentage: 0.9 }] },
+            options: {
+                indexAxis: 'y',
+                responsive: true,
+                maintainAspectRatio: true,
+                plugins: {
+                    legend: { labels: { color: '#cce4ff' } },
+                    datalabels: {
+                        color: '#fff',
+                        font: { weight: 'bold', size: 9 },
+                        align: 'end',
+                        offset: 6,
+                        formatter: (value) => value.toLocaleString('pt-BR'),
+                        backgroundColor: 'rgba(0,0,0,0.6)',
+                        borderRadius: 12,
+                        padding: { top: 2, bottom: 2, left: 6, right: 6 }
+                    }
+                },
+                scales: {
+                    x: { ticks: { color: '#b0d4ff' } },
+                    y: { 
+                        ticks: { color: '#c0dcff', font: { size: 9 } },
+                        barPercentage: 0.85,
+                        categoryPercentage: 0.9
+                    }
+                }
+            },
+            plugins: [ChartDataLabels]
+        });
+    }
+
+    // NAVEGAÇÃO
+    let currentSlide = 1;
+    const totalSlides = 7;
+    
+    function updateActiveNav() {
+        const btns = document.querySelectorAll('.nav-btn');
+        btns.forEach(btn => {
+            const btnNum = parseInt(btn.innerText);
+            if (!isNaN(btnNum)) {
+                if (btnNum === currentSlide) btn.classList.add('active');
+                else btn.classList.remove('active');
+            }
+        });
+    }
+    
+    function showSlide(n) {
+        document.querySelectorAll('.slide').forEach(s => s.classList.remove('active'));
+        document.getElementById(`slide${n}`).classList.add('active');
+        currentSlide = n;
+        updateActiveNav();
+        if (n === 3 && pizzaChart) pizzaChart.resize();
+        if (n === 4 && barChart) barChart.resize();
+        if (n === 5) desenharSimuladorGrafico();
+    }
+    
+    function nextSlide() { if (currentSlide < totalSlides) showSlide(currentSlide + 1); }
+    function prevSlide() { if (currentSlide > 1) showSlide(currentSlide - 1); }
+
+    function buildNav() {
+        const container = document.getElementById('navButtons');
+        container.innerHTML = '';
+        const prevBtn = document.createElement('button'); 
+        prevBtn.innerHTML = '<i class="fas fa-chevron-left"></i> Anterior'; 
+        prevBtn.className = 'nav-btn'; 
+        prevBtn.onclick = prevSlide;
+        container.appendChild(prevBtn);
+        
+        for (let i = 1; i <= totalSlides; i++) {
+            let btn = document.createElement('button'); 
+            btn.innerText = `${i}`; 
+            btn.className = 'nav-btn'; 
+            if (i === 1) btn.classList.add('active');
+            btn.onclick = (function(slideNum) { return function() { showSlide(slideNum); }; })(i);
+            container.appendChild(btn);
+        }
+        
+        const nextBtn = document.createElement('button'); 
+        nextBtn.innerHTML = 'Próximo <i class="fas fa-chevron-right"></i>'; 
+        nextBtn.className = 'nav-btn'; 
+        nextBtn.onclick = nextSlide;
+        container.appendChild(nextBtn);
+    }
+
+    // EVENTOS
+    document.getElementById('simPreco').addEventListener('input', (e) => { precoSpot = parseFloat(e.target.value); atualizarSimulador(); });
+    document.getElementById('simPrecoNum').addEventListener('input', (e) => { precoSpot = parseFloat(e.target.value); document.getElementById('simPreco').value = precoSpot; atualizarSimulador(); });
+    document.getElementById('simConsumo').addEventListener('input', (e) => { desvioCons = parseInt(e.target.value); atualizarSimulador(); });
+    document.getElementById('simHedge').addEventListener('input', (e) => { hedgePct = parseInt(e.target.value); atualizarSimulador(); });
+    document.getElementById('btnOtimistaSim').onclick = () => { precoSpot = 5.80; desvioCons = -10; hedgePct = 70; document.getElementById('simPreco').value = 5.80; document.getElementById('simPrecoNum').value = 5.80; document.getElementById('simConsumo').value = -10; document.getElementById('simHedge').value = 70; atualizarSimulador(); };
+    document.getElementById('btnRealistaSim').onclick = () => { precoSpot = 6.40; desvioCons = 0; hedgePct = 50; document.getElementById('simPreco').value = 6.40; document.getElementById('simPrecoNum').value = 6.40; document.getElementById('simConsumo').value = 0; document.getElementById('simHedge').value = 50; atualizarSimulador(); };
+    document.getElementById('btnPessimistaSim').onclick = () => { precoSpot = 7.20; desvioCons = 10; hedgePct = 30; document.getElementById('simPreco').value = 7.20; document.getElementById('simPrecoNum').value = 7.20; document.getElementById('simConsumo').value = 10; document.getElementById('simHedge').value = 30; atualizarSimulador(); };
+
+    window.onload = () => {
+        buildNav();
+        initPizza();
+        initBarEquip();
+        atualizarSimulador();
+        showSlide(1);
+    };
+</script>
+</body>
+</html>
