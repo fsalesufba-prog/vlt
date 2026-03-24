@@ -316,11 +316,12 @@ h3 {
     transform: translateY(-2px);
 }
 
-/* Grid responsivo */
-.two-columns {
+/* Grid responsivo para dois gráficos lado a lado */
+.charts-dual {
     display: grid;
     grid-template-columns: 1fr 1fr;
-    gap: 32px;
+    gap: 28px;
+    margin: 20px 0;
 }
 
 /* Painel de controle do simulador */
@@ -483,6 +484,10 @@ footer {
     h2 {
         font-size: 1.8rem;
     }
+    .charts-dual {
+        grid-template-columns: 1fr;
+        gap: 24px;
+    }
 }
 
 @media (max-width: 768px) {
@@ -610,11 +615,22 @@ footer {
         </div>
     </div>
 
-    <!-- SLIDE 4 - BARRAS EQUIPAMENTOS -->
+    <!-- SLIDE 4 - CONSUMO POR TIPO DE EQUIPAMENTO (DIVIDIDO EM DOIS GRÁFICOS: 80% E 20%) -->
     <div id="slide4" class="slide">
         <h2>📊 CONSUMO POR TIPO DE EQUIPAMENTO</h2>
-        <div class="chart-box" style="height: 650px;">
-            <canvas id="barEquipamentos"></canvas>
+        <p style="margin-bottom: 10px; font-size: 0.9rem; color: #9acdff;"><i class="fas fa-chart-pie"></i> Análise estratificada: principais equipamentos responsáveis por 80% do consumo e demais itens</p>
+        <div class="charts-dual">
+            <div class="chart-box" style="height: 650px;">
+                <h3 style="margin-top: 0; text-align: center;">🏭 Principais Equipamentos (80% do Consumo)</h3>
+                <canvas id="barEquipamentosTop80"></canvas>
+            </div>
+            <div class="chart-box" style="height: 650px;">
+                <h3 style="margin-top: 0; text-align: center;">⚙️ Demais Equipamentos (20% do Consumo)</h3>
+                <canvas id="barEquipamentosRestante"></canvas>
+            </div>
+        </div>
+        <div style="background: rgba(0, 40, 70, 0.3); border-radius: 24px; padding: 16px; margin-top: 8px;">
+            <p style="font-size: 0.85rem;"><i class="fas fa-chart-line"></i> Metodologia: ordenação decrescente por consumo, acumulando até 80% do total de litros/mês. Demais equipamentos compõem o segundo gráfico para melhor visualização da cauda longa.</p>
         </div>
     </div>
 
@@ -697,7 +713,112 @@ footer {
 </div>
 
 <script>
-    // DADOS SIMULADOR
+    // DADOS EQUIPAMENTOS ORIGINAIS (31 itens)
+    const equipLabelsRaw = [
+        "ESCAVADEIRA HIDRAULICA", "CAMINHÃO BASCULANTE", "GERADOR", "MOTONIVELADORA", "ROLO COMP. PÉ DE CARNEIRO",
+        "RETROESCAVADEIRA", "CAMINHÃO BETONEIRA", "TRATOR ESTEIRA", "TRATOR DE PNEU AGRICOLA", "CAMINHÃO MUNCK",
+        "CAMINHÃO PIPA", "GUINDASTE", "ROLO COMP. PNEUS", "BOMBA LANÇA", "COMPRESSOR DE AR", "CARREGADEIRA",
+        "CARRETA DE CARROÇERIA", "ONIBUS", "MINI ESCAVADEIRA", "ROLO COMP. TANDEN", "MINI ESCAVADEIRA COM ROMPEDOR/CONCHA",
+        "CAMINHÃO 3/4", "ALINHADORA HID. DE TRILHOS", "CARRETA PRANCHA", "CAMINHÃO BASCULANTE", "MINI CARREGADEIRA C/ VASSOURA",
+        "EXTRUSORA MANUAL", "CAMINHÃO COMBOIO", "TORRE DE ILUMINAÇÃO", "PLATAFORMA ELEVATORIA", "MINI ROLO COMPACTADOR"
+    ];
+    const equipDataRaw = [
+        14548.84, 12197.36, 8239.45, 7634.02, 6754.15, 4189.81, 3750.45, 2842.38, 2574.87, 2484.78,
+        2302.14, 1926.31, 1820.00, 1816.68, 1755.00, 1685.39, 1612.33, 1066.00, 1053.00, 845.00,
+        780.00, 656.50, 650.00, 624.00, 565.50, 542.50, 520.00, 466.61, 416.00, 377.00, 286.00
+    ];
+    
+    // Combinar e ordenar decrescente
+    let equipCombined = equipLabelsRaw.map((label, idx) => ({ label, consumo: equipDataRaw[idx] }));
+    equipCombined.sort((a,b) => b.consumo - a.consumo);
+    
+    const totalConsumo = equipCombined.reduce((sum, item) => sum + item.consumo, 0);
+    let acumulado = 0;
+    let top80Items = [];
+    let restItems = [];
+    for (let item of equipCombined) {
+        if (acumulado < totalConsumo * 0.8) {
+            top80Items.push(item);
+            acumulado += item.consumo;
+        } else {
+            restItems.push(item);
+        }
+    }
+    // Se ainda faltou para completar exato 80%? garantimos que o último do top80 seja incluso corretamente
+    // (já lógica acima funciona)
+    
+    const top80Labels = top80Items.map(i => i.label);
+    const top80Data = top80Items.map(i => i.consumo);
+    const restLabels = restItems.map(i => i.label);
+    const restData = restItems.map(i => i.consumo);
+    
+    let barChartTop80, barChartRest;
+    
+    function initSplitBarCharts() {
+        // Gráfico 1: Top 80%
+        let ctxTop = document.getElementById('barEquipamentosTop80').getContext('2d');
+        if (barChartTop80) barChartTop80.destroy();
+        barChartTop80 = new Chart(ctxTop, {
+            type: 'bar',
+            data: { labels: top80Labels, datasets: [{ label: 'Consumo (L/mês)', data: top80Data, backgroundColor: '#4db8ff', borderRadius: 6, barPercentage: 0.85, categoryPercentage: 0.9 }] },
+            options: {
+                indexAxis: 'y',
+                responsive: true,
+                maintainAspectRatio: true,
+                plugins: {
+                    legend: { labels: { color: '#cce4ff' } },
+                    datalabels: {
+                        color: '#fff',
+                        font: { weight: 'bold', size: 9 },
+                        align: 'end',
+                        offset: 6,
+                        formatter: (value) => value.toLocaleString('pt-BR'),
+                        backgroundColor: 'rgba(0,0,0,0.6)',
+                        borderRadius: 12,
+                        padding: { top: 2, bottom: 2, left: 6, right: 6 }
+                    }
+                },
+                scales: {
+                    x: { ticks: { color: '#b0d4ff' } },
+                    y: { ticks: { color: '#c0dcff', font: { size: 9 } } }
+                }
+            },
+            plugins: [ChartDataLabels]
+        });
+        
+        // Gráfico 2: Demais equipamentos (cauda)
+        let ctxRest = document.getElementById('barEquipamentosRestante').getContext('2d');
+        if (barChartRest) barChartRest.destroy();
+        barChartRest = new Chart(ctxRest, {
+            type: 'bar',
+            data: { labels: restLabels, data: restData, datasets: [{ label: 'Consumo (L/mês)', data: restData, backgroundColor: '#70cf9f', borderRadius: 6, barPercentage: 0.85, categoryPercentage: 0.9 }] },
+            options: {
+                indexAxis: 'y',
+                responsive: true,
+                maintainAspectRatio: true,
+                plugins: {
+                    legend: { labels: { color: '#cce4ff' } },
+                    datalabels: {
+                        color: '#fff',
+                        font: { weight: 'bold', size: 9 },
+                        align: 'end',
+                        offset: 6,
+                        formatter: (value) => value.toLocaleString('pt-BR'),
+                        backgroundColor: 'rgba(0,0,0,0.6)',
+                        borderRadius: 12,
+                        padding: { top: 2, bottom: 2, left: 6, right: 6 }
+                    }
+                },
+                scales: {
+                    x: { ticks: { color: '#b0d4ff' } },
+                    y: { ticks: { color: '#c0dcff', font: { size: 9 } } }
+                }
+            },
+            plugins: [ChartDataLabels]
+        });
+    }
+
+    // DADOS SIMULADOR (mesmos do original)
     const mesesRealSim = [
         { mes: 'jan/26', real: 500125.10, consumo: 91200, orcado: 6.59 },
         { mes: 'fev/26', real: 373816.00, consumo: 70000, orcado: 6.59 },
@@ -762,7 +883,6 @@ footer {
             options: { responsive: true, maintainAspectRatio: true, plugins: { tooltip: { callbacks: { label: (ctx) => `R$ ${(ctx.raw * 1000).toLocaleString('pt-BR')}` } } } }
         });
         
-        // Gráfico comparativo mensal
         let realData = mesesDet.map(m => m.real / 1000);
         let orcadoData = mesesDet.map(m => m.orcado / 1000);
         if (comparativoChart) comparativoChart.destroy();
@@ -808,7 +928,7 @@ footer {
         desenharSimuladorGrafico();
     }
 
-    // GRÁFICO PIZZA
+    // GRÁFICO PIZZA (mesmo original)
     let pizzaChart;
     function initPizza() {
         let ctx = document.getElementById('pizzaFrentes').getContext('2d');
@@ -846,56 +966,6 @@ footer {
         });
     }
 
-    // GRÁFICO BARRAS EQUIPAMENTOS
-    let barChart;
-    function initBarEquip() {
-        let ctx = document.getElementById('barEquipamentos').getContext('2d');
-        const equipLabels = [
-            "ESCAVADEIRA HIDRAULICA", "CAMINHÃO BASCULANTE", "GERADOR", "MOTONIVELADORA", "ROLO COMP. PÉ DE CARNEIRO",
-            "RETROESCAVADEIRA", "CAMINHÃO BETONEIRA", "TRATOR ESTEIRA", "TRATOR DE PNEU AGRICOLA", "CAMINHÃO MUNCK",
-            "CAMINHÃO PIPA", "GUINDASTE", "ROLO COMP. PNEUS", "BOMBA LANÇA", "COMPRESSOR DE AR", "CARREGADEIRA",
-            "CARRETA DE CARROÇERIA", "ONIBUS", "MINI ESCAVADEIRA", "ROLO COMP. TANDEN", "MINI ESCAVADEIRA COM ROMPEDOR/CONCHA",
-            "CAMINHÃO 3/4", "ALINHADORA HID. DE TRILHOS", "CARRETA PRANCHA", "CAMINHÃO BASCULANTE", "MINI CARREGADEIRA C/ VASSOURA",
-            "EXTRUSORA MANUAL", "CAMINHÃO COMBOIO", "TORRE DE ILUMINAÇÃO", "PLATAFORMA ELEVATORIA", "MINI ROLO COMPACTADOR"
-        ];
-        const equipData = [
-            14548.84, 12197.36, 8239.45, 7634.02, 6754.15, 4189.81, 3750.45, 2842.38, 2574.87, 2484.78,
-            2302.14, 1926.31, 1820.00, 1816.68, 1755.00, 1685.39, 1612.33, 1066.00, 1053.00, 845.00,
-            780.00, 656.50, 650.00, 624.00, 565.50, 542.50, 520.00, 466.61, 416.00, 377.00, 286.00
-        ];
-        barChart = new Chart(ctx, {
-            type: 'bar',
-            data: { labels: equipLabels, datasets: [{ label: 'Consumo (L/mês)', data: equipData, backgroundColor: '#4db8ff', borderRadius: 6, barPercentage: 0.85, categoryPercentage: 0.9 }] },
-            options: {
-                indexAxis: 'y',
-                responsive: true,
-                maintainAspectRatio: true,
-                plugins: {
-                    legend: { labels: { color: '#cce4ff' } },
-                    datalabels: {
-                        color: '#fff',
-                        font: { weight: 'bold', size: 9 },
-                        align: 'end',
-                        offset: 6,
-                        formatter: (value) => value.toLocaleString('pt-BR'),
-                        backgroundColor: 'rgba(0,0,0,0.6)',
-                        borderRadius: 12,
-                        padding: { top: 2, bottom: 2, left: 6, right: 6 }
-                    }
-                },
-                scales: {
-                    x: { ticks: { color: '#b0d4ff' } },
-                    y: { 
-                        ticks: { color: '#c0dcff', font: { size: 9 } },
-                        barPercentage: 0.85,
-                        categoryPercentage: 0.9
-                    }
-                }
-            },
-            plugins: [ChartDataLabels]
-        });
-    }
-
     // NAVEGAÇÃO
     let currentSlide = 1;
     const totalSlides = 7;
@@ -917,7 +987,10 @@ footer {
         currentSlide = n;
         updateActiveNav();
         if (n === 3 && pizzaChart) pizzaChart.resize();
-        if (n === 4 && barChart) barChart.resize();
+        if (n === 4) { 
+            if (barChartTop80) barChartTop80.resize();
+            if (barChartRest) barChartRest.resize();
+        }
         if (n === 5) desenharSimuladorGrafico();
     }
     
@@ -961,7 +1034,7 @@ footer {
     window.onload = () => {
         buildNav();
         initPizza();
-        initBarEquip();
+        initSplitBarCharts();
         atualizarSimulador();
         showSlide(1);
     };
